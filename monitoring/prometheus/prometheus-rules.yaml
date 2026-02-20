@@ -1,0 +1,423 @@
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: prometheus-rules
+#   namespace: monitoring
+# data:
+#   realistic-alerts.yaml: |
+#     groups:
+#     - name: sre-app-realistic-alerts
+#       rules:
+#       # 🔴 CRITICAL: POD DOWN - DEFINITELY WORKS
+#       - alert: SREAppInstanceDown
+#         expr: up{job="sre-app"} == 0
+#         for: 30s
+#         labels:
+#           severity: critical
+#           priority: p1
+#           category: availability
+#         annotations:
+#           summary: "sre-app instance {{ $labels.instance }} is DOWN"
+#           description: "Pod {{ $labels.pod }} stopped responding to metrics scrapes"
+#           runbook: |
+#             1. Check pod status: kubectl get pod {{ $labels.pod }} -n monitoring
+#             2. Check logs: kubectl logs {{ $labels.pod }} -n monitoring
+#             3. Restart if needed: kubectl delete pod {{ $labels.pod }} -n monitoring
+      
+#       # 🔴 CRITICAL: COMPLETE OUTAGE - DEFINITELY WORKS
+#       - alert: SREAppCompleteOutage
+#         expr: sum(up{job="sre-app"}) == 0
+#         for: 1m
+#         labels:
+#           severity: critical
+#           priority: p0
+#           category: availability
+#         annotations:
+#           summary: "COMPLETE OUTAGE: All sre-app pods are down"
+#           description: "All 3 sre-app instances stopped responding"
+#           runbook: |
+#             1. Check deployment: kubectl get deployment sre-app -n monitoring
+#             2. Scale up: kubectl scale deployment sre-app --replicas=3 -n monitoring
+#             3. Check events: kubectl get events -n monitoring --sort-by='.lastTimestamp'
+      
+#       # 🟠 MAJOR: PARTIAL OUTAGE - DEFINITELY WORKS
+#       - alert: SREAppPartialOutage
+#         expr: count(up{job="sre-app"} == 1) < 3
+#         for: 2m
+#         labels:
+#           severity: major
+#           priority: p2
+#           category: availability
+#         annotations:
+#           summary: "Partial outage: {{ $value }}/3 instances healthy"
+#           description: "Expected 3 replicas but only {{ $value }} are responding"
+      
+#       # 🟠 MAJOR: HIGH MEMORY USAGE - WORKS (you have this metric!)
+#       - alert: SREAppHighMemoryUsage
+#         expr: process_resident_memory_bytes{job="sre-app"} > 100000000  # 100MB
+#         for: 3m
+#         labels:
+#           severity: major
+#           priority: p2
+#           category: performance
+#         annotations:
+#           summary: "High memory usage: {{ $value | humanize }} bytes"
+#           description: "Instance {{ $labels.instance }} using {{ $value | humanize }} of memory"
+      
+#       # 🟠 MAJOR: HIGH CPU USAGE - WORKS (you have this metric!)
+#       - alert: SREAppHighCPUUsage
+#         expr: rate(process_cpu_seconds_total{job="sre-app"}[5m]) > 0.8
+#         for: 3m
+#         labels:
+#           severity: major
+#           priority: p2
+#           category: performance
+#         annotations:
+#           summary: "High CPU usage: {{ $value | humanizePercentage }}"
+#           description: "Instance {{ $labels.instance }} using {{ $value }} CPU cores"
+      
+#       # 🔴 CRITICAL: PROCESS FREQUENTLY RESTARTING - WORKS (you have this metric!)
+#       - alert: SREAppFrequentRestarts
+#         expr: changes(process_start_time_seconds{job="sre-app"}[10m]) > 2
+#         for: 1m
+#         labels:
+#           severity: critical
+#           priority: p1
+#           category: stability
+#         annotations:
+#           summary: "Process restarting frequently"
+#           description: "Instance {{ $labels.instance }} restarted {{ $value }} times in 10 minutes"
+      
+#       # 🟡 WARNING: UNEVEN LOAD DISTRIBUTION
+#       - alert: SREAppUnevenLoad
+#         expr: |
+#           stddev(rate(process_cpu_seconds_total{job="sre-app"}[5m])) 
+#           > avg(rate(process_cpu_seconds_total{job="sre-app"}[5m])) * 0.5
+#         for: 5m
+#         labels:
+#           severity: warning
+#           priority: p3
+#           category: performance
+#         annotations:
+#           summary: "Uneven load distribution across instances"
+#           description: "CPU usage varies significantly between pods"
+      
+#       # 🟡 WARNING: PROCESS AGE (recent restart)
+#       - alert: SREAppRecentlyRestarted
+#         expr: time() - process_start_time_seconds{job="sre-app"} < 300
+#         labels:
+#           severity: warning
+#           priority: p3
+#           category: stability
+#         annotations:
+#           summary: "Process recently restarted"
+#           description: "Instance {{ $labels.instance }} started {{ $value | humanizeDuration }} ago"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  realistic-alerts.yaml: |
+    groups:
+    - name: sre-app-realistic-alerts
+      rules:
+      # 🔴 CRITICAL: POD DOWN - DEFINITELY WORKS
+      - alert: SREAppInstanceDown
+        expr: up{job="sre-app"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          priority: p1
+          category: availability
+        annotations:
+          summary: "sre-app instance {{ $labels.instance }} is DOWN"
+          description: "Pod {{ $labels.pod }} stopped responding to metrics scrapes"
+          runbook: |
+            1. Check pod status: kubectl get pod {{ $labels.pod }} -n monitoring
+            2. Check logs: kubectl logs {{ $labels.pod }} -n monitoring
+            3. Restart if needed: kubectl delete pod {{ $labels.pod }} -n monitoring
+      
+      # 🔴 CRITICAL: COMPLETE OUTAGE - FIXED (should work)
+      - alert: SREAppCompleteOutage
+        expr: sum(up{job="sre-app"}) == 0
+        for: 1m
+        labels:
+          severity: critical
+          priority: p0
+          category: availability
+        annotations:
+          summary: "COMPLETE OUTAGE: All sre-app pods are down"
+          description: "All 3 sre-app instances stopped responding"
+          runbook: |
+            1. Check deployment: kubectl get deployment sre-app -n monitoring
+            2. Scale up: kubectl scale deployment sre-app --replicas=3 -n monitoring
+            3. Check events: kubectl get events -n monitoring --sort-by='.lastTimestamp'
+      
+      # 🟠 MAJOR: PARTIAL OUTAGE - FIXED SYNTAX
+      - alert: SREAppPartialOutage
+        expr: sum(up{job="sre-app"}) < 3
+        for: 2m
+        labels:
+          severity: major
+          priority: p2
+          category: availability
+        annotations:
+          summary: "Partial outage: {{ $value }}/3 instances healthy"
+          description: "Expected 3 replicas but only {{ $value }} are responding"
+      
+      # 🟠 MAJOR: HIGH MEMORY USAGE - LOWERED THRESHOLD FOR TESTING (50MB)
+      - alert: SREAppHighMemoryUsage
+        expr: process_resident_memory_bytes{job="sre-app"} > 50000000  # 50MB (was 100MB)
+        for: 1m
+        labels:
+          severity: major
+          priority: p2
+          category: performance
+        annotations:
+          summary: "High memory usage: {{ $value | humanize }} bytes"
+          description: "Instance {{ $labels.instance }} using {{ $value | humanize }} of memory"
+      
+      # 🟠 MAJOR: HIGH CPU USAGE - LOWERED THRESHOLD FOR TESTING
+      - alert: SREAppHighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="sre-app"}[1m]) > 0.1  # 10% of a core (was 0.8)
+        for: 1m
+        labels:
+          severity: major
+          priority: p2
+          category: performance
+        annotations:
+          summary: "High CPU usage: {{ $value | humanizePercentage }}"
+          description: "Instance {{ $labels.instance }} using {{ $value }} CPU cores"
+      
+      # 🔴 CRITICAL: PROCESS FREQUENTLY RESTARTING - ADJUSTED THRESHOLD
+      - alert: SREAppFrequentRestarts
+        expr: changes(process_start_time_seconds{job="sre-app"}[10m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+          priority: p1
+          category: stability
+        annotations:
+          summary: "Process restarting frequently"
+          description: "Instance {{ $labels.instance }} restarted {{ $value }} times in 10 minutes"
+      
+      # 🟡 WARNING: UNEVEN LOAD DISTRIBUTION - SIMPLIFIED
+      - alert: SREAppUnevenLoad
+        expr: |
+          stddev(rate(process_cpu_seconds_total{job="sre-app"}[2m])) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          priority: p3
+          category: performance
+        annotations:
+          summary: "Uneven load distribution across instances"
+          description: "CPU usage varies significantly between pods"
+      
+      # 🟡 WARNING: PROCESS AGE (recent restart) - ADDED for: 0s
+      - alert: SREAppRecentlyRestarted
+        expr: time() - process_start_time_seconds{job="sre-app"} < 300
+        for: 0s
+        labels:
+          severity: warning
+          priority: p3
+          category: stability
+        annotations:
+          summary: "Process recently restarted"
+          description: "Instance {{ $labels.instance }} started {{ $value | humanizeDuration }} ago"
+      
+      # 🟡 WARNING: LOW DISK SPACE (if applicable)
+      - alert: SREAppHighProcessCount
+        expr: process_resident_memory_bytes{job="sre-app"} > 80000000 and rate(process_cpu_seconds_total{job="sre-app"}[1m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          priority: p3
+          category: performance
+        annotations:
+          summary: "High resource usage detected"
+          description: "Instance {{ $labels.instance }} has both high memory and CPU usage"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: prometheus-rules
+#   namespace: monitoring
+# data:
+#   realistic-alerts.yaml: |
+#     groups:
+#     - name: sre-app-realistic-alerts
+#       rules:
+#       # 🔴 CRITICAL: POD DOWN - DEFINITELY WORKS
+#       - alert: SREAppInstanceDown
+#         expr: up{job="sre-app"} == 0
+#         for: 30s
+#         labels:
+#           severity: critical
+#           priority: p1
+#           category: availability
+#         annotations:
+#           summary: "sre-app instance {{ $labels.instance }} is DOWN"
+#           description: "Pod {{ $labels.pod }} stopped responding to metrics scrapes"
+#           runbook: |
+#             1. Check pod status: kubectl get pod {{ $labels.pod }} -n monitoring
+#             2. Check logs: kubectl logs {{ $labels.pod }} -n monitoring
+#             3. Restart if needed: kubectl delete pod {{ $labels.pod }} -n monitoring
+      
+#       # 🔴 CRITICAL: COMPLETE OUTAGE - FIXED (should work)
+#       - alert: SREAppCompleteOutage
+#         expr: sum(up{job="sre-app"}) == 0
+#         for: 1m
+#         labels:
+#           severity: critical
+#           priority: p0
+#           category: availability
+#         annotations:
+#           summary: "COMPLETE OUTAGE: All sre-app pods are down"
+#           description: "All 3 sre-app instances stopped responding"
+#           runbook: |
+#             1. Check deployment: kubectl get deployment sre-app -n monitoring
+#             2. Scale up: kubectl scale deployment sre-app --replicas=3 -n monitoring
+#             3. Check events: kubectl get events -n monitoring --sort-by='.lastTimestamp'
+      
+#       # 🟠 MAJOR: PARTIAL OUTAGE - FIXED SYNTAX
+#       - alert: SREAppPartialOutage
+#         expr: sum(up{job="sre-app"}) < 3
+#         for: 2m
+#         labels:
+#           severity: major
+#           priority: p2
+#           category: availability
+#         annotations:
+#           summary: "Partial outage: {{ $value }}/3 instances healthy"
+#           description: "Expected 3 replicas but only {{ $value }} are responding"
+      
+#       # 🟠 MAJOR: HIGH MEMORY USAGE - LOWERED THRESHOLD FOR TESTING (50MB)
+#       - alert: SREAppHighMemoryUsage
+#         expr: process_resident_memory_bytes{job="sre-app"} > 50000000  # 50MB (was 100MB)
+#         for: 1m
+#         labels:
+#           severity: major
+#           priority: p2
+#           category: performance
+#         annotations:
+#           summary: "High memory usage: {{ $value | humanize }} bytes"
+#           description: "Instance {{ $labels.instance }} using {{ $value | humanize }} of memory"
+      
+#       # 🟠 MAJOR: HIGH CPU USAGE - LOWERED THRESHOLD FOR TESTING
+#       - alert: SREAppHighCPUUsage
+#         expr: rate(process_cpu_seconds_total{job="sre-app"}[1m]) > 0.1  # 10% of a core (was 0.8)
+#         for: 1m
+#         labels:
+#           severity: major
+#           priority: p2
+#           category: performance
+#         annotations:
+#           summary: "High CPU usage: {{ $value | humanize }} cores"
+#           description: "Instance {{ $labels.instance }} using {{ $value }} CPU cores"
+      
+#       # 🔴 CRITICAL: PROCESS FREQUENTLY RESTARTING - ADJUSTED THRESHOLD
+#       - alert: SREAppFrequentRestarts
+#         expr: changes(process_start_time_seconds{job="sre-app"}[10m]) > 1
+#         for: 1m
+#         labels:
+#           severity: critical
+#           priority: p1
+#           category: stability
+#         annotations:
+#           summary: "Process restarting frequently"
+#           description: "Instance {{ $labels.instance }} restarted {{ $value }} times in 10 minutes"
+      
+#       # 🟡 WARNING: UNEVEN LOAD DISTRIBUTION - SIMPLIFIED
+#       - alert: SREAppUnevenLoad
+#         expr: |
+#           stddev(rate(process_cpu_seconds_total{job="sre-app"}[2m])) > 0.05
+#         for: 3m
+#         labels:
+#           severity: warning
+#           priority: p3
+#           category: performance
+#         annotations:
+#           summary: "Uneven load distribution across instances"
+#           description: "CPU usage varies significantly between pods"
+      
+#       # 🟡 WARNING: PROCESS AGE (recent restart) - ADDED for: 0s
+#       - alert: SREAppRecentlyRestarted
+#         expr: time() - process_start_time_seconds{job="sre-app"} < 300
+#         for: 0s
+#         labels:
+#           severity: warning
+#           priority: p3
+#           category: stability
+#         annotations:
+#           summary: "Process recently restarted"
+#           description: "Instance {{ $labels.instance }} started {{ $value | humanizeDuration }} ago"
+      
+#       # 🟡 WARNING: HIGH RESOURCE USAGE (Memory AND CPU)
+#       - alert: SREAppHighResourceUsage
+#         expr: |
+#           process_resident_memory_bytes{job="sre-app"} > 80000000 and 
+#           rate(process_cpu_seconds_total{job="sre-app"}[1m]) > 0.05
+#         for: 2m
+#         labels:
+#           severity: warning
+#           priority: p3
+#           category: performance
+#         annotations:
+#           summary: "High resource usage detected"
+#           description: "Instance {{ $labels.instance }} has both high memory and CPU usage"

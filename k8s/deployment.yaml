@@ -1,0 +1,110 @@
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: sre-app
+#   namespace: monitoring
+#   labels:
+#     app: sre-app
+# spec:
+#   replicas: 2
+#   selector:
+#     matchLabels:
+#       app: sre-app
+#   template:
+#     metadata:
+#       labels:
+#         app: sre-app
+#     spec:
+#       containers:
+#         - name: sre-app
+#           image: melvinsamuel070/sre-app:latest
+#           imagePullPolicy: Always
+#           ports:
+#             - containerPort: 3000
+
+#           # READINESS PROBE
+#           readinessProbe:
+#             httpGet:
+#               path: /health
+#               port: 3000
+#             initialDelaySeconds: 5
+#             periodSeconds: 5
+
+#           # LIVENESS PROBE
+#           livenessProbe:
+#             httpGet:
+#               path: /health
+#               port: 3000
+#             initialDelaySeconds: 15
+#             periodSeconds: 10
+
+#           # RESOURCE LIMITS (SRE BEST PRACTICE)
+#           resources:
+#             requests:
+#               cpu: "100m"
+#               memory: "128Mi"
+#             limits:
+#               cpu: "300m"
+#               memory: "256Mi"
+
+
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sre-app
+  namespace: monitoring
+  labels:
+    app: sre-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sre-app
+  template:
+    metadata:
+      labels:
+        app: sre-app
+    spec:
+      containers:
+        - name: sre-app
+          image: melvinsamuel070/sre-app:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http           # ✅ Added port name for Prometheus
+              containerPort: 3000
+
+          # ✅ READINESS PROBE
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 1
+
+          # ✅ LIVENESS PROBE
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # ✅ RESOURCE LIMITS (SRE BEST PRACTICE)
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          # #  ⚠ Optional: for testing crash loop (remove after demo)
+          # command: ["sh", "-c", "exit 1"]
+
+          # # ⚠ Optional: for testing high CPU (remove after demo)
+          # # command: ["sh", "-c", "while true; do :; done"]

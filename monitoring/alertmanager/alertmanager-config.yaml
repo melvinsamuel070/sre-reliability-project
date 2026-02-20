@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: 'smtp.gmail.com:587'  # Configure based on your setup
+      smtp_from: 'alerts@yourcompany.com'
+      smtp_auth_username: 'your-email@gmail.com'
+      smtp_auth_password: 'your-password'
+      slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'  # Optional
+      
+    # Templates for rich notifications with solutions
+    templates:
+    - '/etc/alertmanager/templates/*.tmpl'
+    
+    route:
+      group_by: ['alertname', 'risk', 'severity']
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 1h
+      receiver: 'default-receiver'
+      
+      # Critical alerts go to pager/phone immediately
+      routes:
+      - match:
+          severity: critical
+          risk: availability
+        receiver: 'sre-pager'
+        group_interval: 1m
+        repeat_interval: 5m
+        continue: true
+        
+      - match:
+          severity: critical
+          risk: crash-loop
+        receiver: 'sre-pager'
+        group_interval: 1m
+        repeat_interval: 5m
+        continue: true
+        
+      - match:
+          severity: critical
+          risk: infrastructure
+        receiver: 'infra-team'
+        group_interval: 2m
+        repeat_interval: 10m
+        continue: true
+        
+      - match:
+          severity: warning
+          risk: performance
+        receiver: 'sre-team'
+        group_interval: 5m
+        repeat_interval: 30m
+        continue: true
+        
+      - match:
+          severity: warning
+          risk: memory
+        receiver: 'sre-team'
+        continue: true
+        
+      - match:
+          severity: warning
+          risk: latency
+        receiver: 'sre-team'
+        continue: true
+        
+      - match:
+          risk: deployment
+        receiver: 'devops-team'
+        continue: true
+        
+      - match:
+          risk: scaling
+        receiver: 'devops-team'
+        continue: true
+        
+      # Fallback for any other alerts
+      - match_re:
+          severity: critical|warning
+        receiver: 'sre-team'
+    
+    receivers:
+    - name: 'default-receiver'
+      email_configs:
+      - to: 'alerts@yourcompany.com'
+        headers:
+          subject: 'Alert: {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.with.solution" . }}'
+      
+    - name: 'sre-pager'
+      webhook_configs:
+      - url: 'http://pagerduty-webhook:8080/'  # Your PagerDuty webhook
+        send_resolved: true
+      email_configs:
+      - to: 'sre-oncall@yourcompany.com'
+        headers:
+          subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }} - Immediate Action Required'
+        html: '{{ template "critical.email" . }}'
+      
+    - name: 'sre-team'
+      slack_configs:
+      - channel: '#sre-alerts'
+        title: '⚠️ {{ .GroupLabels.severity | upper }}: {{ .GroupLabels.alertname }}'
+        text: '{{ template "slack.with.solution" . }}'
+        color: '{{ if eq .GroupLabels.severity "critical" }}danger{{ else }}warning{{ end }}'
+      email_configs:
+      - to: 'sre-team@yourcompany.com'
+        html: '{{ template "email.with.solution" . }}'
+      
+    - name: 'infra-team'
+      slack_configs:
+      - channel: '#infrastructure-alerts'
+        title: '🏗️ Infra Issue: {{ .GroupLabels.alertname }}'
+        text: '{{ template "slack.infra" . }}'
+      email_configs:
+      - to: 'infra-team@yourcompany.com'
+        html: '{{ template "email.infra" . }}'
+      
+    - name: 'devops-team'
+      slack_configs:
+      - channel: '#devops-alerts'
+        title: '🔄 DevOps: {{ .GroupLabels.alertname }}'
+        text: '{{ template "slack.devops" . }}'
+      email_configs:
+      - to: 'devops@yourcompany.com'
+        html: '{{ template "email.devops" . }}'
+      
+    # For testing without external services
+    - name: 'debug-receiver'
+      webhook_configs:
+      - url: 'http://localhost:9093/webhook'  # Local debug endpoint
+        send_resolved: true
